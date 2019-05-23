@@ -511,7 +511,7 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 448303568}
-        m_MethodName: Hoge
+        m_MethodName: StartSpatialAnchors
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -643,7 +643,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 7843986952700292761, guid: bf2eec4c7d003c24a8932c8b9b2f623b, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: bf2eec4c7d003c24a8932c8b9b2f623b, type: 3}
 --- !u!1 &1298830886
 GameObject:

@@ -1,5 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
+
+// // Copyright(c) 2019 Takahiro Miyaura
+// Released under the MIT license
+// http://opensource.org/licenses/mit-license.php
+
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -18,10 +23,8 @@ using UnityEngine;
 public class SpatialAnchorsUnityBuildProcessing : IActiveBuildTargetChanged, IPostprocessBuildWithReport
 {
     private const string ARCorePluginFolder = "Assets\\GoogleARCore";
-    private const string ARKitPluginFolder = "Assets\\UnityARKitPlugin";
     private const string AzureSpatialAnchorsPackage = "Microsoft.Azure.SpatialAnchors.WinCPP";
     private const string AzureSpatialAnchorsRedistPackage = "Microsoft.Azure.SpatialAnchors.WinCPP.Redist";
-    private const string UnityRelativePodFilePath = "Assets/SharingCrossPlatformDemo/AzureSpatialAnchorsModules/Plugins/iOS/Podfile";
     private const string UnityRelativeNuGetConfigFilePath = @"Assets\\SharingCrossPlatformDemo\\AzureSpatialAnchorsModules\\Plugins\\HoloLens\\NuGet.Config";
     private const string UnityRelativePackageVersionFilePath = @"Assets\\SharingCrossPlatformDemo\\AzureSpatialAnchorsModules\\Plugins\\HoloLens\\version.txt";
 
@@ -42,7 +45,6 @@ public class SpatialAnchorsUnityBuildProcessing : IActiveBuildTargetChanged, IPo
     public void OnActiveBuildTargetChanged(BuildTarget previousTarget, BuildTarget newTarget)
     {
         string ARCoreAssetsDir = Path.Combine(Directory.GetCurrentDirectory(), ARCorePluginFolder);
-        string ARKitAssetsDir = Path.Combine(Directory.GetCurrentDirectory(), ARKitPluginFolder);
         bool NeedRefresh = false;
         if (newTarget == BuildTarget.Android)
         {
@@ -62,26 +64,6 @@ public class SpatialAnchorsUnityBuildProcessing : IActiveBuildTargetChanged, IPo
             Debug.Log("Disabling the ARCore SDK");
             SetHiddenAttributeOnFileOrFolder(ARCoreAssetsDir);
             NeedRefresh |= (previousTarget == BuildTarget.Android);
-        }
-
-        if (newTarget == BuildTarget.iOS)
-        {
-            if (Directory.Exists(ARKitAssetsDir) == false)
-            {
-                Debug.LogError($"Please put the ARKit plugin in {ARKitAssetsDir}");
-            }
-            else
-            {
-                Debug.Log("Enabling the ARKit SDK");
-                ClearHiddenAttributeOnFileOrFolder(ARKitAssetsDir);
-                NeedRefresh = true;
-            }
-        }
-        else if (Directory.Exists(ARKitAssetsDir))
-        {
-            Debug.Log("Disabling the ARKit SDK");
-            SetHiddenAttributeOnFileOrFolder(ARKitAssetsDir);
-            NeedRefresh |= (previousTarget == BuildTarget.iOS);
         }
 
         if (NeedRefresh)
@@ -152,20 +134,6 @@ public class SpatialAnchorsUnityBuildProcessing : IActiveBuildTargetChanged, IPo
             return;
         }
 
-        string podFileName = Path.GetFileName(UnityRelativePodFilePath);
-
-        string outputPodFilePath = Path.Combine(buildOutputPath, podFileName);
-
-        if (!File.Exists(outputPodFilePath))
-        {
-            string inputPodFilePath = Path.Combine(Directory.GetCurrentDirectory(), UnityRelativePodFilePath);
-            File.Copy(inputPodFilePath, outputPodFilePath);
-            Debug.Log($"Spatial Anchors pod file copied to project path: '{outputPodFilePath}'.");
-        }
-        else
-        {
-            Debug.Log($"Spatial Anchors pod file already exists.");
-        }
     }
 
     /// <summary>

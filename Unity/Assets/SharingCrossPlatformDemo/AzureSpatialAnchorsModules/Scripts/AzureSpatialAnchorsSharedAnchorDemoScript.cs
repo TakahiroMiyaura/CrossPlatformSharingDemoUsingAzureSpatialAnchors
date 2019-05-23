@@ -1,4 +1,7 @@
-﻿// Copyright(c) 2019 Takahiro Miyaura
+﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Licensed under the MIT License. See LICENSE in the project root for license information.
+
+// // Copyright(c) 2019 Takahiro Miyaura
 // Released under the MIT license
 // http://opensource.org/licenses/mit-license.php
 
@@ -11,24 +14,43 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
-public class SamplesCode : InputInteractionBase
+public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 {
     #region private fields and properties
 
+    /// <summary>
+    /// Azure Spatial Anchors上に存在するアンカーのIDリストを保持するフィールド
+    /// </summary>
     private readonly List<string> _localAnchorIds = new List<string>();
-    private readonly Queue<Action> _dispatchQueue = new Queue<Action>();
 
+    /// <summary>
+    /// Azure Spatial Anchorsサービスと連携するためのラッパークラスをもつフィールド
+    /// </summary>
     private AzureSpatialAnchorsDemoWrapper _cloudManager;
-    private AppState _currentAppState = AppState.Ready;
+
+    /// <summary>
+    /// Azure Spatial Anchorsから取得した現在のアンカー情報をもつフィールド
+    /// </summary>
     private CloudSpatialAnchor _currentCloudAnchor;
+
+    /// <summary>
+    /// Azure Spatial Anchorsとのセッション状態に応じたエラー状況を表すフィールド
+    /// </summary>
     private bool _isErrorActive;
 
+    /// <summary>
+    /// ステータスメッセージ表示用のテキストオブジェクト
+    /// </summary>
     private Text _feedbackBox;
 
-#if !UNITY_EDITOR
-        public AnchorExchanger anchorExchanger = new AnchorExchanger();
-#endif
+    /// <summary>
+    /// このコンポーネントの状態を表すフィールド
+    /// </summary>
+    private AppState _currentAppState = AppState.Ready;
 
+    /// <summary>
+    /// このコンポーネントの状態を取得設定します。
+    /// </summary>
     private AppState currentAppState
     {
         get => _currentAppState;
@@ -42,27 +64,56 @@ public class SamplesCode : InputInteractionBase
         }
     }
 
+    /// <summary>
+    /// タスク処理用のキューイングフィールドです
+    /// </summary>
+    private readonly Queue<Action> _dispatchQueue = new Queue<Action>();
+
+#if !UNITY_EDITOR
+    /// <summary>
+    ///  アンカー共有サービスとの連携を行う<see cref="AnchorExchanger"/>をもつフィールド
+    /// </summary>
+    public AnchorExchanger anchorExchanger = new AnchorExchanger();
+#endif
+
     #endregion
 
     #region public Properties    
 
+    /// <summary>
+    /// アンカー共有サービスのURLを指定する。URLはhttps://[作成されたAzureのサイト]/api/anchors
+    /// </summary>
     public string BaseSharingUrl = "";
 
     /// <summary>
     ///     アンカーのオブジェクトを設定します。
     /// </summary>
     public GameObject AnchoredObjectPrefab = null;
-
-    public GameObject UXParent = null;
-
-    public Canvas PunCanvs = null;
     
+    /// <summary>
+    /// ローカルで作成したアンカーのアップロードに失敗/成功したかを取得設定します。
+    /// </summary>
     [HideInInspector] public bool RetrySavingCloudSpatialAnchor = false;
 
+    /// <summary>
+    /// 現在のアンカー以外に生成したアンカーオブジェクトを格納するリスト
+    /// </summary>
     private readonly List<GameObject> _otherSpawnedObjects = new List<GameObject>();
+
+    /// <summary>
+    /// アンカーが設置されたかどうかを持つフィールド
+    /// </summary>
     private int _anchorsLocated;
+
+    /// <summary>
+    /// アンカーの数をもつフィールド
+    /// </summary>
     private int _anchorsExpected;
-    private List<CloudSpatialAnchor> _resetAnchors = new List<CloudSpatialAnchor>();
+
+    /// <summary>
+    /// アプリ起動時に削除するアンカーのリスト
+    /// </summary>
+    private readonly List<CloudSpatialAnchor> _resetAnchors = new List<CloudSpatialAnchor>();
 
     #endregion
 
@@ -110,25 +161,13 @@ public class SamplesCode : InputInteractionBase
         _cloudManager.OnLogDebug += CloudManager_OnLogDebug;
         _cloudManager.OnSessionError += CloudManager_OnSessionError;
 #if WINDOWS_UWP || UNITY_WSA
-        _cloudManager.OnLocateAnchorsCompleted += _cloudManager_OnLocateAnchorsCompleted;
+        _cloudManager.OnLocateAnchorsCompleted += CloudManager_OnLocateAnchorsCompleted;
 #endif
     }
 
-    private void _cloudManager_OnLocateAnchorsCompleted(object sender, LocateAnchorsCompletedEventArgs args)
+    public void StartSpatialAnchors()
     {
-        foreach (var cloudSpatialAnchor in _resetAnchors)
-        {
-            _cloudManager.DeleteAnchorAsync(cloudSpatialAnchor).GetAwaiter().GetResult();
-        }
-        if (currentAppState == AppState.AnchorReset)
-        {
-            _resetAnchors.Clear();
-            currentAppState = AppState.AnchorSearching;
-        }
-    }
-
-    public void Hoge()
-    {
+        //TODO: HoloLens同士でこのアプリを使用する場合は以下の#if～#endifを削除してください。この処理は起動時にAzure Spatial Anchorsをクリアする処理です。
 #if !UNITY_EDITOR
         if (anchorExchanger.AnchorCount > 0)
         {
@@ -245,28 +284,6 @@ public class SamplesCode : InputInteractionBase
         }
     }
 
-    private void LocateAnchors()
-    {
-        _cloudManager.ResetSessionStatusIndicators();
-        _currentCloudAnchor = null;
-        List<string> anchorsToFind = new List<string>();
-
-#if !UNITY_EDITOR
-        if(anchorExchanger.AnchorCount > 1)
-        {
-            anchorsToFind.Add(anchorExchanger.AnchorKeys[0]);
-        }
-        else
-        {
-            anchorsToFind.AddRange(anchorExchanger.AnchorKeys);
-        }
-#endif
-        _anchorsExpected = anchorsToFind.Count;
-        _cloudManager.SetAnchorIdsToLocate(anchorsToFind);
-        _cloudManager.CreateWatcher();
-
-    }
-
     /// <summary>
     ///     Queues the specified <see cref="Action" /> on update.
     /// </summary>
@@ -286,95 +303,20 @@ public class SamplesCode : InputInteractionBase
 
 #endregion
 
-    public async void DeleteAnchor()
+    #region CloudManager events
+
+    private void CloudManager_OnLocateAnchorsCompleted(object sender, LocateAnchorsCompletedEventArgs args)
     {
-        await _cloudManager.DeleteAnchorAsync(_currentCloudAnchor);
-    }
-
-    /// <summary>
-    ///     Saves the current object anchor to the cloud.
-    /// </summary>
-    private void SaveCurrentObjectAnchorToCloud()
-    {
-        currentAppState = AppState.SavingCloudSpatialAnchor;
-        var localCloudAnchor = new CloudSpatialAnchor();
-
-        localCloudAnchor.LocalAnchor = _otherSpawnedObjects[0].GetNativeAnchorPointer();
-
-        if (localCloudAnchor.LocalAnchor == IntPtr.Zero)
+        foreach (var cloudSpatialAnchor in _resetAnchors)
         {
-            Debug.Log("Didn't get the local XR anchor pointer...");
-            return;
+            _cloudManager.DeleteAnchorAsync(cloudSpatialAnchor).GetAwaiter().GetResult();
         }
-
-        // In this sample app we delete the cloud anchor explicitly, but here we show how to set an anchor to expire automatically
-        localCloudAnchor.Expiration = DateTimeOffset.Now.AddDays(7);
-
-        Task.Run(async () =>
+        if (currentAppState == AppState.AnchorReset)
         {
-            while (!_cloudManager.EnoughDataToCreate)
-            {
-                await Task.Delay(330);
-                var createProgress = _cloudManager.GetSessionStatusIndicator(AzureSpatialAnchorsDemoWrapper
-                    .SessionStatusIndicatorType.RecommendedForCreate);
-                QueueOnUpdate(() =>
-                    _feedbackBox.text = $"Move your device to capture more environment data: {createProgress:0%}");
-            }
-
-            var success = false;
-            try
-            {
-                QueueOnUpdate(() => _feedbackBox.text = "Saving...");
-                
-                _currentCloudAnchor = await _cloudManager.StoreAnchorInCloud(localCloudAnchor);
-
-                success = _currentCloudAnchor != null;
-                localCloudAnchor = null;
-
-                if (success && !_isErrorActive)
-                {
-                    OnSaveCloudAnchorSuccessful();
-                }
-                else
-                {
-                    currentAppState = AppState.SavingCloudSpatialAnchorFailed;
-                    Debug.Log(new Exception("Failed to save, but no exception was thrown."));
-                }
-            }
-            catch (Exception ex)
-            {
-                currentAppState = AppState.SavingCloudSpatialAnchorFailed;
-                Debug.Log(ex);
-            }
-        });
+            _resetAnchors.Clear();
+            currentAppState = AppState.AnchorSearching;
+        }
     }
-
-    protected async void OnSaveCloudAnchorSuccessful()
-    {
-        long anchorNumber = -1;
-
-        this._localAnchorIds.Add(_currentCloudAnchor.Identifier);
-
-#if !UNITY_EDITOR
-            anchorNumber = (await this.anchorExchanger.StoreAnchorKey(_currentCloudAnchor.Identifier));
-#endif
-
-        this.QueueOnUpdate(new Action(() =>
-        {
-            Pose anchorPose = Pose.identity;
-
-#if UNITY_ANDROID || UNITY_IOS
-            anchorPose = _currentCloudAnchor.GetAnchorPose();
-#endif
-            // HoloLens: The position will be set based on the unityARUserAnchor that was located.
-
-            this.SpawnOrMoveCurrentAnchoredObject(anchorPose.position, anchorPose.rotation);
-
-            this.currentAppState = AppState.SavedCloudSpatialAnchor;
-        }));
-    }
-
-#region CloudManager events
 
     private void CloudManager_OnSessionError(object sender, SessionErrorEventArgs args)
     {
@@ -421,10 +363,126 @@ public class SamplesCode : InputInteractionBase
     }
 
 
-#endregion
+    #endregion
 
-#region Anchor Spawn
+    #region upload to Azure Spatial Anchors
 
+    public async void DeleteAnchor()
+    {
+        await _cloudManager.DeleteAnchorAsync(_currentCloudAnchor);
+    }
+
+    /// <summary>
+    ///     Saves the current object anchor to the cloud.
+    /// </summary>
+    private void SaveCurrentObjectAnchorToCloud()
+    {
+        currentAppState = AppState.SavingCloudSpatialAnchor;
+        var localCloudAnchor = new CloudSpatialAnchor();
+
+        localCloudAnchor.LocalAnchor = _otherSpawnedObjects[0].GetNativeAnchorPointer();
+
+        if (localCloudAnchor.LocalAnchor == IntPtr.Zero)
+        {
+            Debug.Log("Didn't get the local XR anchor pointer...");
+            return;
+        }
+
+        // In this sample app we delete the cloud anchor explicitly, but here we show how to set an anchor to expire automatically
+        localCloudAnchor.Expiration = DateTimeOffset.Now.AddDays(7);
+
+        Task.Run((Func<Task>) (async () =>
+        {
+            while (!_cloudManager.EnoughDataToCreate)
+            {
+                await Task.Delay(330);
+                var createProgress = _cloudManager.GetSessionStatusIndicator(AzureSpatialAnchorsDemoWrapper
+                    .SessionStatusIndicatorType.RecommendedForCreate);
+                QueueOnUpdate(() =>
+                    _feedbackBox.text = $"Move your device to capture more environment data: {createProgress:0%}");
+            }
+
+            var success = false;
+            try
+            {
+                QueueOnUpdate(() => _feedbackBox.text = "Saving...");
+                
+                _currentCloudAnchor = await _cloudManager.StoreAnchorInCloud(localCloudAnchor);
+
+                success = _currentCloudAnchor != null;
+                localCloudAnchor = null;
+
+                if (success && !_isErrorActive)
+                {
+                    OnSaveCloudAnchorSuccessful();
+                }
+                else
+                {
+                    currentAppState = AppState.SavingCloudSpatialAnchorFailed;
+                    Debug.Log(new Exception("Failed to save, but no exception was thrown."));
+                }
+            }
+            catch (Exception ex)
+            {
+                currentAppState = AppState.SavingCloudSpatialAnchorFailed;
+                Debug.Log(ex);
+            }
+        }));
+    }
+
+    protected async void OnSaveCloudAnchorSuccessful()
+    {
+        long anchorNumber = -1;
+
+        this._localAnchorIds.Add(_currentCloudAnchor.Identifier);
+
+#if !UNITY_EDITOR
+            anchorNumber = (await this.anchorExchanger.StoreAnchorKey(_currentCloudAnchor.Identifier));
+#endif
+
+        this.QueueOnUpdate(new Action(() =>
+        {
+            Pose anchorPose = Pose.identity;
+
+#if UNITY_ANDROID || UNITY_IOS
+            anchorPose = _currentCloudAnchor.GetAnchorPose();
+#endif
+            // HoloLens: The position will be set based on the unityARUserAnchor that was located.
+
+            this.SpawnOrMoveCurrentAnchoredObject(anchorPose.position, anchorPose.rotation);
+
+            this.currentAppState = AppState.SavedCloudSpatialAnchor;
+        }));
+    }
+
+    #endregion
+
+    #region Anchor Locate To Local
+    private void LocateAnchors()
+    {
+        _cloudManager.ResetSessionStatusIndicators();
+        _currentCloudAnchor = null;
+        List<string> anchorsToFind = new List<string>();
+
+#if !UNITY_EDITOR
+        if(anchorExchanger.AnchorCount > 1)
+        {
+            anchorsToFind.Add(anchorExchanger.AnchorKeys[0]);
+        }
+        else
+        {
+            anchorsToFind.AddRange(anchorExchanger.AnchorKeys);
+        }
+#endif
+        _anchorsExpected = anchorsToFind.Count;
+        _cloudManager.SetAnchorIdsToLocate(anchorsToFind);
+        _cloudManager.CreateWatcher();
+
+    }
+
+    #endregion
+
+    #region Anchor Spawn
     private void OnCloudAnchorLocated(AnchorLocatedEventArgs args)
     {
         _currentCloudAnchor = args.Anchor;
@@ -587,7 +645,7 @@ public class SamplesCode : InputInteractionBase
 #if WINDOWS_UWP || UNITY_WSA
 
         // On HoloLens, we just advance the demo.
-        this.QueueOnUpdate(new Action(() => this.Hoge()));
+        this.QueueOnUpdate(new Action(() => this.StartSpatialAnchors()));
 #endif
 
         base.OnSelectInteraction();
