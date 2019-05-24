@@ -81,6 +81,7 @@ AzureSpatialAnchorsSharedAnchorDemoScript.StartSpatialAnchorsの中にありま�
 ベースにいているものはチュートリアルの以下の内容です。  
 [チュートリアル:セッションやデバイス間での Azure Spatial Anchors の共有](https://docs.microsoft.com/ja-jp/azure/spatial-anchors/tutorials/tutorial-share-anchors-across-devices#deploy-your-sharing-anchors-service)
 
-
-© 2019 Takahiro Miyaura All rights reserved.  
+<div style="text-align: center;">
+© 2019 Takahiro Miyaura All rights reserved.<br />
 本コンテンツの著作権、および本コンテンツ中に出てくる商標権、団体名、ロゴ、製品、サービスなどはそれぞれ、各権利保有者に帰属します。
+</div>
