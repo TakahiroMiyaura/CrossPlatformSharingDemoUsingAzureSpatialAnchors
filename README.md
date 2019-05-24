@@ -31,11 +31,11 @@ de:code 2019 のセッション内容をより深く理解し実践するのに�
 
 ### 開発に必要な前準備
 #### Azure等の環境
-このサンプルはZure Spatial Anchorのクイックスタートと導入手順は同じになります。前提条件、開発に必要なAzureの構築は以下のサイトを参照してください。
+このサンプルはZure Spatial Anchorのクイックスタートと導入手順は同じになります。前提条件、開発に必要なAzureの構築は以下のサイトを参照してください。  
 [クイック スタート:Azure Spatial Anchors を使用する HoloLens Unity アプリを作成する](https://docs.microsoft.com/ja-jp/azure/spatial-anchors/quickstarts/get-started-unity-hololens)
 
 #### アンカー共有サービスのデプロイ
-アンカーの共有を行うためにそられの情報へのアクセスを容易にするためのサンプルとしてAzure Spatial Anchorのチュートリアルではアンカー共有サービスを構築しています。今回のサンプルもこのサイトの機能を利用しますので手順に従って準備をお願いします。
+アンカーの共有を行うためにそられの情報へのアクセスを容易にするためのサンプルとしてAzure Spatial Anchorのチュートリアルではアンカー共有サービスを構築しています。今回のサンプルもこのサイトの機能を利用しますので手順に従って準備をお願いします 。  
 [チュートリアル:セッションやデバイス間での Azure Spatial Anchors の共有 - アンカー共有サービスのデプロイ](https://docs.microsoft.com/ja-jp/azure/spatial-anchors/tutorials/tutorial-share-anchors-across-devices#deploy-your-sharing-anchors-service)
 
 #### Photonサービスの登録
@@ -46,8 +46,10 @@ Photonへのサービス登録とPUN(Pothon Unity Networking)用のアプリケ�
 
 1. Gitからこのリポジトリをクローンまたはダウンロードする。
 2. Unityで開く
-3. [Asset]-[Import Package]-[Custom Package]を開きあらかじめダウンロードした[ARCore](https://github.com/google-ar/arcore-unity-sdk/releases/tag/v1.5.0) 用のunitypackageをダウンロードする。
-4. Asset Storeから [PUN 2 - Free版(2.12)](https://assetstore.unity.com/packages/tools/network/pun-2-free-119922)をインポートする
+3. [Asset]-[Import Package]-[Custom Package]を開きあらかじめダウンロードした[ARCore](https://github.com/google-ar/arcore-unity-sdk/releases/tag/v1.5.0) 用のunitypackageをインポートする（サンプル以外）。  
+![ARCoreインポート対象](./images/fig1.png)
+4. Asset Storeから [PUN 2 - Free版(2.12)](https://assetstore.unity.com/packages/tools/network/pun-2-free-119922)をインポートする(チャットとDemo以外)。  
+![Pun2インポート対象](./images/fig2.png)
 5. デプロイする。[File]-[Build Settings]を選択しビルドを実施する。
   * Androidの場合は [Platform]を[Android]に変更し[Switch Platform]を行う。使用するAndroidのバージョンに合わせて[Player Settings]のAndroid OSバージョンを変更します（Zenfone AR > 7.0,NEXUS 6P > 8.0)
   * HoloLensの場合は、[Platform]を[Universal Windows Platform]に変更し[Switch Platform]を行う。
