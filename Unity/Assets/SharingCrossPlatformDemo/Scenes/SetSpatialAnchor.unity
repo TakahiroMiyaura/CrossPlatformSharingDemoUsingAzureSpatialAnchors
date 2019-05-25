@@ -588,6 +588,11 @@ PrefabInstance:
       propertyPath: PunCanvs
       value: 
       objectReference: {fileID: 0}
+    - target: {fileID: 7843986952700292774, guid: bf2eec4c7d003c24a8932c8b9b2f623b,
+        type: 3}
+      propertyPath: BaseSharingUrl
+      value: 
+      objectReference: {fileID: 0}
     - target: {fileID: 7843986952700292760, guid: bf2eec4c7d003c24a8932c8b9b2f623b,
         type: 3}
       propertyPath: m_LocalPosition.x
@@ -642,6 +647,16 @@ PrefabInstance:
         type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7843986952700292775, guid: bf2eec4c7d003c24a8932c8b9b2f623b,
+        type: 3}
+      propertyPath: SpatialAnchorsAccountId
+      value: 
+      objectReference: {fileID: 0}
+    - target: {fileID: 7843986952700292775, guid: bf2eec4c7d003c24a8932c8b9b2f623b,
+        type: 3}
+      propertyPath: SpatialAnchorsAccountKey
+      value: 
       objectReference: {fileID: 0}
     m_RemovedComponents:
     - {fileID: 7843986952700292761, guid: bf2eec4c7d003c24a8932c8b9b2f623b, type: 3}
