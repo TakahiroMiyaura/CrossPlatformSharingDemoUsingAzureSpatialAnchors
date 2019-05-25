@@ -50,7 +50,17 @@ Photonへのサービス登録とPUN(Pothon Unity Networking)用のアプリケ�
 ![ARCoreインポート対象](./images/fig1.png)
 4. Asset Storeから [PUN 2 - Free版(2.12)](https://assetstore.unity.com/packages/tools/network/pun-2-free-119922)をインポートする(チャットとDemo以外)。  
 ![Pun2インポート対象](./images/fig2.png)
-5. デプロイする。[File]-[Build Settings]を選択しビルドを実施する。
+5. インポートすると以下のダイアログが表示されます。あらかじめ作成したPhotonのアプリケーションIDを設定します。  
+![Photon設定ダイアログ](./images/fig3.png)
+6. AzureSpatialAnchorsのパラメータを設定する。
+    1. [file]-[Open Scene]を選択し[Assets\SharingCrossPlatformDemo\Scenes\SetSpatialAnchor.unity]を開く。
+    2. [Hierarchy]タブから[AzureSpatialAnchors]を選択する。
+    3. [Inspector]タブの以下のプロパティに構築したAzureのパラメータを設定する。  
+    ![Inspectorの設定](./images/fig4.png)  
+      * AzureSpatialAnchorsDemoWrapper.SpatialAnchorsAccountId
+      * AzureSpatialAnchorsDemoWrapper.SpatialAnchorsAccountKey
+      * AzureSpatialAnchorsSharedAnchorDemoScript.BaseSharingUrl
+7. デプロイする。[File]-[Build Settings]を選択しビルドを実施する。
   * Androidの場合は [Platform]を[Android]に変更し[Switch Platform]を行う。使用するAndroidのバージョンに合わせて[Player Settings]のAndroid OSバージョンを変更します（Zenfone AR > 7.0,NEXUS 6P > 8.0)
   * HoloLensの場合は、[Platform]を[Universal Windows Platform]に変更し[Switch Platform]を行う。
 
