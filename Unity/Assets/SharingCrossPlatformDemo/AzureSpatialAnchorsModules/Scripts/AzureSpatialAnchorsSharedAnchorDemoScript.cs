@@ -1,4 +1,5 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License. See LICENSE in the project root for license information.
 
 // // Copyright(c) 2019 Takahiro Miyaura
@@ -7,6 +8,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.SpatialAnchors;
 using Microsoft.Azure.SpatialAnchors.Unity.Samples;
@@ -115,6 +117,8 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
     /// </summary>
     private readonly List<CloudSpatialAnchor> _resetAnchors = new List<CloudSpatialAnchor>();
 
+    private Task _saveTask;
+
     #endregion
 
     #region Unity call back
@@ -167,10 +171,13 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 
     public void StartSpatialAnchors()
     {
+        currentAppState = AppState.AnchorSearching;
         //TODO: HoloLens同士でこのアプリを使用する場合は以下の#if～#endifを削除してください。この処理は起動時にAzure Spatial Anchorsをクリアする処理です。
-#if !UNITY_EDITOR
-        if (anchorExchanger.AnchorCount > 0)
+#if WINDOWS_UWP && !UNITY_EDITOR
+        if (currentAppState == AppState.Ready && anchorExchanger.AnchorCount > 0)
         {
+
+            _feedbackBox.text = "Check Settings Azure Spatial Anchors.\nDelete Azure Spatial Anchors.";
             currentAppState = AppState.AnchorReset;
             List<string> anchorsToFind = new List<string>();
 
@@ -182,13 +189,8 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
             _cloudManager.SetAnchorIdsToLocate(anchorsToFind);
             _cloudManager.CreateWatcher();
         }
-        else
-        {
-            currentAppState = AppState.AnchorSearching;
-        }
-
 #endif
-        
+
     }
 
     public override void Update()
@@ -229,7 +231,7 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
             case AppState.RetrySavingCloudSpatialAnchor:
                 if (_otherSpawnedObjects.Count == 0)
                 {
-                    _feedbackBox.text = "Cloud Spatial Anchor Not Founded. Set an Anchor on spatial surface";
+                    _feedbackBox.text = "Cloud Spatial Anchor Not Founded.\nSetting an Anchor on spatial surface,\n tap to the floor.";
                 }
                 else
                 {
@@ -307,13 +309,15 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 
     private void CloudManager_OnLocateAnchorsCompleted(object sender, LocateAnchorsCompletedEventArgs args)
     {
-        foreach (var cloudSpatialAnchor in _resetAnchors)
-        {
-            _cloudManager.DeleteAnchorAsync(cloudSpatialAnchor).GetAwaiter().GetResult();
-        }
         if (currentAppState == AppState.AnchorReset)
         {
+            foreach (var cloudSpatialAnchor in _resetAnchors)
+            {
+                _cloudManager.DeleteAnchorAsync(cloudSpatialAnchor).GetAwaiter().GetResult();
+            }
+            
             _resetAnchors.Clear();
+            Task.Delay(800);
             currentAppState = AppState.AnchorSearching;
         }
     }
@@ -339,26 +343,29 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
                 _resetAnchors.Add(args.Anchor);
         }
 
-
-        switch (args.Status)
+        else
         {
-            case LocateAnchorStatus.Located:
-                // Go add your anchor to the scene...
-                OnCloudAnchorLocated(args);
-                break;
-            case LocateAnchorStatus.AlreadyTracked:
-                // This anchor has already been reported and is being tracked
-                break;
-            case LocateAnchorStatus.NotLocatedAnchorDoesNotExist:
-                currentAppState = AppState.AnchorNotFounded;
-                // The anchor was deleted or never existed in the first place
-                // Drop it, or show UI to ask user to anchor the content anew
-                break;
-            case LocateAnchorStatus.NotLocated:
-                // The anchor hasn't been found given the location data
-                // The user might in the wrong location, or maybe more data will help
-                // Show UI to tell user to keep looking around
-                break;
+
+            switch (args.Status)
+            {
+                case LocateAnchorStatus.Located:
+                    // Go add your anchor to the scene...
+                    OnCloudAnchorLocated(args);
+                    break;
+                case LocateAnchorStatus.AlreadyTracked:
+                    // This anchor has already been reported and is being tracked
+                    break;
+                case LocateAnchorStatus.NotLocatedAnchorDoesNotExist:
+                    currentAppState = AppState.AnchorNotFounded;
+                    // The anchor was deleted or never existed in the first place
+                    // Drop it, or show UI to ask user to anchor the content anew
+                    break;
+                case LocateAnchorStatus.NotLocated:
+                    // The anchor hasn't been found given the location data
+                    // The user might in the wrong location, or maybe more data will help
+                    // Show UI to tell user to keep looking around
+                    break;
+            }
         }
     }
 
@@ -391,7 +398,7 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
         // In this sample app we delete the cloud anchor explicitly, but here we show how to set an anchor to expire automatically
         localCloudAnchor.Expiration = DateTimeOffset.Now.AddDays(7);
 
-        Task.Run((Func<Task>) (async () =>
+        _saveTask = Task.Run((Func<Task>) (async () =>
         {
             while (!_cloudManager.EnoughDataToCreate)
             {

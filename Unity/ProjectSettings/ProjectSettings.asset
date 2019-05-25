@@ -797,7 +797,7 @@ PlayerSettings:
   metroCertificatePassword: 
   metroCertificateSubject: OsakaDrivenDev
   metroCertificateIssuer: OsakaDrivenDev
-  metroCertificateNotAfter: 80d89e781930d601
+  metroCertificateNotAfter: 007b9c80c731d601
   metroApplicationDescription: "Azure Spatial Anchors \u3068 Photon\u3092\u7D44\u307F\u5408\u308F\u305B\u305F\u30AF\u30ED\u30B9\u30D7\u30E9\u30C3\u30C8\u30D5\u30A9\u30FC\u30E0\u7528Sharing\u30B5\u30F3\u30D7\u30EB\u3067\u3059\u3002"
   wsaImages: {}
   metroTileShortName: 

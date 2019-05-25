@@ -28,8 +28,8 @@ public class FollowUserGaze : MonoBehaviour
         if (!Physics.Raycast(headPosition, gazeDirection, out hitInfo, 5.0f, 1 << 30))
         {
             // If the raycast did not hit the canvas, update canvas position
-            Vector3 nextPos = headPosition + gazeDirection * 2 + Vector3.down * 0.1f;
-            transform.position = Vector3.Lerp(transform.position, nextPos, 1f / 60f);
+            Vector3 nextPos = headPosition + gazeDirection*2.3f  + Vector3.down * 0.1f;
+            transform.position = Vector3.Lerp(transform.position, nextPos, 1f / 3f);
             transform.LookAt(mainCamera.transform);
             transform.Rotate(Vector3.up, 180);
         }

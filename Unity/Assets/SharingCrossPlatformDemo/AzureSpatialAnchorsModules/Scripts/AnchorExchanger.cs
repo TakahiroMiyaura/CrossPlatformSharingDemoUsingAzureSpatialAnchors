@@ -19,6 +19,7 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
         private string baseAddress = "";
 
         private List<string> anchorkeys = new List<string>();
+        private Task _poolingProcess;
 
         public List<string> AnchorKeys
         {
@@ -45,24 +46,24 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
         public void WatchKeys(string exchangerUrl)
         {
             baseAddress = exchangerUrl;
-            Task.Factory.StartNew(async () =>
+            _poolingProcess = Task.Factory.StartNew(async () =>
+            {
+                string previousKey = string.Empty;
+                while (true)
                 {
-                    string previousKey = string.Empty;
-                    while (true)
+                    string currentKey = await RetrieveLastAnchorKey();
+                    if (!string.IsNullOrWhiteSpace(currentKey) && currentKey != previousKey)
                     {
-                        string currentKey = await RetrieveLastAnchorKey();
-                        if (!string.IsNullOrWhiteSpace(currentKey) && currentKey != previousKey)
+                        Debug.Log("Found key " + currentKey);
+                        lock (anchorkeys)
                         {
-                            Debug.Log("Found key " + currentKey);
-                            lock (anchorkeys)
-                            {
-                                anchorkeys.Add(currentKey);
-                            }
-                            previousKey = currentKey;
+                            anchorkeys.Add(currentKey);
                         }
-                        await Task.Delay(500);
+                        previousKey = currentKey;
                     }
-                }, TaskCreationOptions.LongRunning);
+                    await Task.Delay(500);
+                }
+            }, TaskCreationOptions.LongRunning);
         }
 
         public async Task<string> RetrieveAnchorKey(long anchorNumber)

@@ -167,7 +167,7 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
                 }
             });
 #else
-        CreateNewCloudSession();
+            CreateNewCloudSession();
 #endif
         }
 

@@ -11,17 +11,14 @@ public class LaucherConnectButton : InputInteractionBase
 {
 
     public Launcher Launcher;
+    private bool _isTap = false;
 
     protected override void OnSelectObjectInteraction(Vector3 hitPoint, object target)
     {
-        if (target is RaycastHit)
+        if (!_isTap)
         {
-            var raycastHit = (RaycastHit)target;
-            if (raycastHit.collider.gameObject.name.Equals(this.name))
-            {
+            _isTap = true;
                 Launcher.Connect();
-            }
-
         }
     }
 }
