@@ -3,9 +3,11 @@
 // http://opensource.org/licenses/mit-license.php
 using System.Collections;
 using System.Collections.Generic;
+using Microsoft.Azure.SpatialAnchors.Unity.Samples;
 using Photon.Pun;
 using Photon.Realtime;
 using UnityEngine;
+using UnityEngine.UI;
 
 public class Launcher : MonoBehaviourPunCallbacks
 {
@@ -38,6 +40,7 @@ public class Launcher : MonoBehaviourPunCallbacks
     /// </summary>
     string gameVersion = "1";
 
+    private Text _feedbackBox;
 
     #endregion
 
@@ -57,7 +60,7 @@ public class Launcher : MonoBehaviourPunCallbacks
         {
             Debug.Log("We load the 'Main' ");
 
-
+            
             // #Critical
             // Load the Room Level.
             PhotonNetwork.LoadLevel("Main");
@@ -126,7 +129,10 @@ public class Launcher : MonoBehaviourPunCallbacks
     /// - if not yet connected, Connect this application instance to Photon Cloud Network
     /// </summary>
     public void Connect()
-    {// keep track of the will to join a room, because when we come back from the game we will get a callback that we are connected, so we need to know what to do then
+    {
+
+        _feedbackBox = XRUXPicker.Instance.GetFeedbackText();
+        // keep track of the will to join a room, because when we come back from the game we will get a callback that we are connected, so we need to know what to do then
         isConnecting = true;
         progressLabel.SetActive(true);
         controlPanel.SetActive(false);
@@ -142,7 +148,8 @@ public class Launcher : MonoBehaviourPunCallbacks
             PhotonNetwork.GameVersion = gameVersion;
             PhotonNetwork.ConnectUsingSettings();
         }
-        
+
+        _feedbackBox.text = "Join!...";
         progressLabel.SetActive(false);
         controlPanel.SetActive(true);
     }

@@ -1,10 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License. See LICENSE in the project root for license information.
-
-// // Copyright(c) 2019 Takahiro Miyaura
-// Released under the MIT license
-// http://opensource.org/licenses/mit-license.php
-
+// Licensed under the MIT license.
 using System;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -19,7 +14,6 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
         private string baseAddress = "";
 
         private List<string> anchorkeys = new List<string>();
-        private Task _poolingProcess;
 
         public List<string> AnchorKeys
         {
@@ -43,27 +37,41 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
             }
         }
 
+        public void DeleteAnchorCache(string anchorKey)
+       {
+            lock (anchorkeys)
+            {
+                if(anchorkeys.Contains(anchorKey))
+                {
+                     anchorkeys.Remove(anchorKey);
+                }
+            }
+       }
+
+        public bool IsWatchKeysExecute = false;
+
         public void WatchKeys(string exchangerUrl)
         {
             baseAddress = exchangerUrl;
-            _poolingProcess = Task.Factory.StartNew(async () =>
-            {
-                string previousKey = string.Empty;
-                while (true)
+            Task.Factory.StartNew(async () =>
                 {
-                    string currentKey = await RetrieveLastAnchorKey();
-                    if (!string.IsNullOrWhiteSpace(currentKey) && currentKey != previousKey)
+                    string previousKey = string.Empty;
+                    while (true)
                     {
-                        Debug.Log("Found key " + currentKey);
-                        lock (anchorkeys)
+                        string currentKey = await RetrieveLastAnchorKey();
+                        if (!string.IsNullOrWhiteSpace(currentKey) && currentKey != previousKey)
                         {
-                            anchorkeys.Add(currentKey);
+                            Debug.Log("Found key " + currentKey);
+                            lock (anchorkeys)
+                            {
+                                anchorkeys.Add(currentKey);
+                            }
+                            previousKey = currentKey;
                         }
-                        previousKey = currentKey;
+                        await Task.Delay(500);
+                        IsWatchKeysExecute=true;
                     }
-                    await Task.Delay(500);
-                }
-            }, TaskCreationOptions.LongRunning);
+                }, TaskCreationOptions.LongRunning);
         }
 
         public async Task<string> RetrieveAnchorKey(long anchorNumber)

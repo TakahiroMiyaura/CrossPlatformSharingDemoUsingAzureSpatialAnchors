@@ -1,10 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License. See LICENSE in the project root for license information.
-
-// // Copyright(c) 2019 Takahiro Miyaura
-// Released under the MIT license
-// http://opensource.org/licenses/mit-license.php
-
+// Licensed under the MIT license.
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -12,10 +7,10 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using UnityEngine;
 #if UNITY_IOS
-using Microsoft.Azure.SpatialAnchors.Unity.Samples.IOS.ARKit;
+using Microsoft.Azure.SpatialAnchors.Unity.IOS.ARKit;
 using UnityEngine.XR.iOS;
 #elif UNITY_ANDROID
-using Microsoft.Azure.SpatialAnchors.Unity.Samples.Android;
+using Microsoft.Azure.SpatialAnchors.Unity.Android;
 #elif UNITY_WSA || WINDOWS_UWP
 using UnityEngine.XR.WSA;
 #endif
@@ -24,18 +19,18 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 {
     /// <summary>
     /// Use this behavior to manage an Azure Spatial Service session for your game or app.
-    /// アプリケーションのためのAzure Spatial Anchorを管理します。
     /// </summary>
     public class AzureSpatialAnchorsDemoWrapper : MonoBehaviour
     {
-        /// <summary>
-        /// 静的インスタンスフィールド
-        /// </summary>
         private static AzureSpatialAnchorsDemoWrapper _instance;
+
+#if UNITY_ANDROID
+        // We should only run the java initialization once
+        private static bool JavaInitialized { get; set; } = false;
+#endif
 
         /// <summary>
         /// Single instance of the anchor manager.
-        /// Anchor管理クラスの唯一のインスタンスを取得します。
         /// </summary>
         public static AzureSpatialAnchorsDemoWrapper Instance
         {
@@ -52,22 +47,18 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 
         /// <summary>
         /// Set this string to the Spatial Anchors account ID provided in the Spatial Anchors resource.
-        /// Azure Spatial Anchorで提供されるSpatial Anchors account IDの文字列を設定します。
         /// </summary>
-        public string SpatialAnchorsAccountId = "";
+        public string SpatialAnchorsAccountId { get; private set;} = "";
 
         /// <summary>
         /// Set this string to the Spatial Anchors account key provided in the Spatial Anchors resource.
-        /// Azure Spatial Anchorで提供されるSpatial Anchors account keyの文字列を設定します。
         /// </summary>
-        public string SpatialAnchorsAccountKey = "";
+        public string SpatialAnchorsAccountKey { get; private set; } = "";
 
         /// <summary>
         /// These events are not wired to the actual CloudSpatialAnchorSession, but will
         /// act as a proxy to forward events from the CloudSpatialAnchorSession to the
         /// subscriber.
-        /// これらのイベントはCloudSpatialAnchorSessionのイベントとして直接接続されていませんが、
-        /// CloudSpatialAnchorSessionのイベントを転送するためのプロキシとして機能します。
         /// </summary>
         public event AnchorLocatedDelegate OnAnchorLocated;
         public event LocateAnchorsCompletedDelegate OnLocateAnchorsCompleted;
@@ -75,36 +66,20 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
         public event SessionUpdatedDelegate OnSessionUpdated;
         public event OnLogDebugDelegate OnLogDebug;
 
-        /// <summary>
-        /// 現在のセッション状況を表す列挙体です。
-        /// </summary>
         public enum SessionStatusIndicatorType
         {
             RecommendedForCreate = 0,
-            ReadyForCreate,
-            RecommendedForQuery,
-            ReadyForQuery
+            ReadyForCreate
         }
 
-        private readonly float[] SessionStatusIndicators = new float[4];
+        private readonly float[] SessionStatusIndicators = new float[2];
 
-        /// <summary>
-        /// 現在のセッション状況に対する状況を取得します。
-        /// </summary>
-        /// <param name="indicatorType"><see cref="SessionStatusIndicatorType"/></param>
-        /// <returns></returns>
         public float GetSessionStatusIndicator(SessionStatusIndicatorType indicatorType)
         {
-
             return SessionStatusIndicators[(int)indicatorType];
         }
 
         private bool enableProcessing;
-
-        /// <summary>
-        /// Azure Spatial Anchorの管理昨日の処理中/停止を設定します。
-        /// このプロパティをTrueで設定すると<see cref="CloudSpatialAnchorSession"/>のセッションが開始されます。
-        /// </summary>
         public bool EnableProcessing
         {
             get
@@ -131,8 +106,6 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 
         public bool EnoughDataToCreate => this.GetSessionStatusIndicator(SessionStatusIndicatorType.RecommendedForCreate) >= 1;
 
-        public bool EnoughDataToQuery => this.GetSessionStatusIndicator(SessionStatusIndicatorType.ReadyForQuery) >= 1;
-
         private readonly Queue<Action> dispatchQueue = new Queue<Action>();
 
         private readonly List<string> AnchorIdsToLocate = new List<string>();
@@ -141,18 +114,17 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 
         private AnchorLocateCriteria anchorLocateCriteria = null;
 
+        private void Awake()
+        {
+            AzureSpatialAnchorsDemoConfiguration demoConfig = Resources.Load<AzureSpatialAnchorsDemoConfiguration>("AzureSpatialAnchorsDemoConfig");
+            SpatialAnchorsAccountId = demoConfig.SpatialAnchorsAccountId;
+            SpatialAnchorsAccountKey = demoConfig.SpatialAnchorsAccountKey;
+        }
         // Use this for initialization
-        /// <summary>
-        /// cloud 
-        /// </summary>
         private void Start()
         {
-            
-            //クラウド上に格納されたAnchorの情報を検索するためのクラスをインスタンス化します。
             anchorLocateCriteria = new AnchorLocateCriteria();
 
-            //CloudSpatialAnchorSessionのインスタンス化とセッション接続の準備のためにCreateNewCloudSessionを呼出します。
-            //デバイス毎に前処理が発生します。
 #if UNITY_IOS
         arkitSession = UnityARSessionNativeInterface.GetARSessionNativeInterface();
         UnityARSessionNativeInterface.ARFrameUpdatedEvent += UnityARSessionNativeInterface_ARFrameUpdatedEvent;
@@ -160,14 +132,19 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 #if UNITY_ANDROID
             UnityAndroidHelper.Instance.DispatchUiThread(unityActivity =>
             {
-                using (AndroidJavaClass cloudServices = new AndroidJavaClass("com.microsoft.CloudServices"))
+                // We should only run the java initialization once
+                if (!JavaInitialized)
                 {
-                    cloudServices.CallStatic("initialize", unityActivity);
-                    this.CreateNewCloudSession();
+                    using (AndroidJavaClass cloudServices = new AndroidJavaClass("com.microsoft.CloudServices"))
+                    {
+                        cloudServices.CallStatic("initialize", unityActivity);
+                        JavaInitialized = true;
+                    }
                 }
+                this.CreateNewCloudSession();
             });
 #else
-            CreateNewCloudSession();
+        CreateNewCloudSession();
 #endif
         }
 
@@ -191,6 +168,7 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 
             if (cloudSpatialAnchorSession != null)
             {
+                cloudSpatialAnchorSession.Stop();
                 cloudSpatialAnchorSession.Dispose();
                 cloudSpatialAnchorSession = null;
             }
@@ -264,32 +242,18 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 
         private void CreateNewCloudSession()
         {
-            //クラウド用のセッションクラスをインスタンス化します。
             cloudSpatialAnchorSession = new CloudSpatialAnchorSession();
 
-            //Azure Spatial Anchorの各種キーを設定します。
             cloudSpatialAnchorSession.Configuration.AccountId = SpatialAnchorsAccountId.Trim();
             cloudSpatialAnchorSession.Configuration.AccountKey = SpatialAnchorsAccountKey.Trim();
+            cloudSpatialAnchorSession.LogLevel = SessionLogLevel.All;
 
-            //セッション状態をトレースするためのログ出力の設定を行います。
-            cloudSpatialAnchorSession.LogLevel = SessionLogLevel.Information;
-
-            //ログ出力時に発生するイベント
             cloudSpatialAnchorSession.OnLogDebug += CloudSpatialAnchorSession_OnLogDebug;
-
-            //セション状態が変わった場合に発生するイベントです。
             cloudSpatialAnchorSession.SessionUpdated += CloudSpatialAnchorSession_SessionUpdated;
-
-            //Anchor情報アンカーの探知/探知失敗時に発生するイベントです。
             cloudSpatialAnchorSession.AnchorLocated += CloudSpatialAnchorSession_AnchorLocated;
-
-            //監視対象のアンカーをすべて探知し終わった際に発生するイベントです。
             cloudSpatialAnchorSession.LocateAnchorsCompleted += CloudSpatialAnchorSession_LocateAnchorsCompleted;
-
-            //エラー発生時に発生するイベントです。
             cloudSpatialAnchorSession.Error += CloudSpatialAnchorSession_Error;
 
-            //以下の処理はアカウントキーの代わりにAzureのトークンを使用する場合に有効化します。
 #if UNITY_WSA && !UNITY_EDITOR
             // AAD user token scenario to get an authentication token
             //cloudSpatialAnchorSession.TokenRequired += async (object sender, SpatialServices.TokenRequiredEventArgs args) =>
@@ -301,8 +265,6 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
             //};
 #endif
 
-        //アンカーの配置を処理するために使用するセションを設定します。
-        //おそらく各デバイス毎の空間マッピングに関する情報を利用するための設定と思われます。
 #if UNITY_IOS
         cloudSpatialAnchorSession.Session = arkitSession.GetNativeSessionPtr();
 #elif UNITY_ANDROID

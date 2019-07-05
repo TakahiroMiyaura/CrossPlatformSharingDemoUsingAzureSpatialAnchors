@@ -11,6 +11,7 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Azure.SpatialAnchors;
+using Microsoft.Azure.SpatialAnchors.Unity;
 using Microsoft.Azure.SpatialAnchors.Unity.Samples;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -71,32 +72,6 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
     /// </summary>
     private readonly Queue<Action> _dispatchQueue = new Queue<Action>();
 
-#if !UNITY_EDITOR
-    /// <summary>
-    ///  アンカー共有サービスとの連携を行う<see cref="AnchorExchanger"/>をもつフィールド
-    /// </summary>
-    public AnchorExchanger anchorExchanger = new AnchorExchanger();
-#endif
-
-    #endregion
-
-    #region public Properties    
-
-    /// <summary>
-    /// アンカー共有サービスのURLを指定する。URLはhttps://[作成されたAzureのサイト]/api/anchors
-    /// </summary>
-    public string BaseSharingUrl = "";
-
-    /// <summary>
-    ///     アンカーのオブジェクトを設定します。
-    /// </summary>
-    public GameObject AnchoredObjectPrefab = null;
-    
-    /// <summary>
-    /// ローカルで作成したアンカーのアップロードに失敗/成功したかを取得設定します。
-    /// </summary>
-    [HideInInspector] public bool RetrySavingCloudSpatialAnchor = false;
-
     /// <summary>
     /// 現在のアンカー以外に生成したアンカーオブジェクトを格納するリスト
     /// </summary>
@@ -118,6 +93,38 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
     private readonly List<CloudSpatialAnchor> _resetAnchors = new List<CloudSpatialAnchor>();
 
     private Task _saveTask;
+
+    /// <summary>
+    /// アンカー共有サービスのURLを指定する。URLはhttps://[作成されたAzureのサイト]/api/anchors
+    /// </summary>
+    private string _baseSharingUrl = "";
+
+#if !UNITY_EDITOR
+    /// <summary>
+    ///  アンカー共有サービスとの連携を行う<see cref="AnchorExchanger"/>をもつフィールド
+    /// </summary>
+    public AnchorExchanger anchorExchanger = new AnchorExchanger();
+#endif
+
+    #endregion
+
+    #region public Properties    
+
+    /// <summary>
+    ///     アンカーのオブジェクトを設定します。
+    /// </summary>
+    public GameObject AnchoredObjectPrefab = null;
+    
+    /// <summary>
+    /// ローカルで作成したアンカーのアップロードに失敗/成功したかを取得設定します。
+    /// </summary>
+    [HideInInspector] public bool RetrySavingCloudSpatialAnchor = false;
+
+    /// <summary>
+    /// Azure Spatial Anchorsの削除を実施/未実施を取得します。
+    /// </summary>
+    [HideInInspector]
+    public bool IsAzureSpatialAnchorsDeleted { get; private set; }
 
     #endregion
 
@@ -156,38 +163,66 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
             return;
         }
 
+        AzureSpatialAnchorsDemoConfiguration demoConfig = Resources.Load<AzureSpatialAnchorsDemoConfiguration>("AzureSpatialAnchorsDemoConfig");
+        _baseSharingUrl = demoConfig.BaseSharingURL;
+
+        if (string.IsNullOrEmpty(_baseSharingUrl))
+        {
+            Debug.Log("Need to set the BaseSharingUrl on AzureSpatialAnchorsDemoConfig in Examples/Resources.");
+            return;
+        }
+        else
+        {
+            Uri result;
+            if (!Uri.TryCreate(_baseSharingUrl, UriKind.Absolute, out result))
+            {
+                Debug.Log("BaseSharingUrl, on AzureSpatialAnchorsDemoConfig in Examples/Resources, is not a valid url");
+                return;
+            }
+            else
+            {
+                _baseSharingUrl = $"{result.Scheme}://{result.Host}/api/anchors";
+            }
+        }
+
 #if !UNITY_EDITOR
             anchorExchanger.WatchKeys(this.BaseSharingUrl);
 #endif
-
-
+        
         _cloudManager.OnAnchorLocated += CloudManager_OnAnchorLocated;
         _cloudManager.OnLogDebug += CloudManager_OnLogDebug;
         _cloudManager.OnSessionError += CloudManager_OnSessionError;
-#if WINDOWS_UWP || UNITY_WSA
-        _cloudManager.OnLocateAnchorsCompleted += CloudManager_OnLocateAnchorsCompleted;
-#endif
+
     }
 
     public void StartSpatialAnchors()
     {
+        if (currentAppState == AppState.Initialize || currentAppState == AppState.AnchorReset) return;
         currentAppState = AppState.AnchorSearching;
-        //TODO: HoloLens同士でこのアプリを使用する場合は以下の#if～#endifを削除してください。この処理は起動時にAzure Spatial Anchorsをクリアする処理です。
-#if WINDOWS_UWP && !UNITY_EDITOR
+    }
+
+    public void DeleteSpatialAnchors()
+    {
+        if (currentAppState == AppState.Initialize || currentAppState == AppState.AnchorReset) return;
+#if !UNITY_EDITOR
         if (currentAppState == AppState.Ready && anchorExchanger.AnchorCount > 0)
         {
-
-            _feedbackBox.text = "Check Settings Azure Spatial Anchors.\nDelete Azure Spatial Anchors.";
+            
             currentAppState = AppState.AnchorReset;
             List<string> anchorsToFind = new List<string>();
 
             anchorsToFind.AddRange(anchorExchanger.AnchorKeys);
+        
+            _feedbackBox.text = $"Delete Azure Spatial Anchors. {anchorExchanger.AnchorCount}";
 
-            
             _cloudManager.ResetSessionStatusIndicators();
             _cloudManager.EnableProcessing = true;
             _cloudManager.SetAnchorIdsToLocate(anchorsToFind);
             _cloudManager.CreateWatcher();
+        }
+        else
+        {
+            _feedbackBox.text = $"No Anchor Located.";
         }
 #endif
 
@@ -195,6 +230,23 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 
     public override void Update()
     {
+
+#if !UNITY_EDITOR
+        if (anchorExchanger.IsWatchKeysExecute ) 
+        {
+           if(currentAppState == AppState.Initialize)
+           {
+               currentAppState = AppState.Ready;
+           }
+        }
+        else
+        {
+            currentAppState = AppState.Initialize;
+            return;
+        }
+        
+#endif
+
         base.Update();
         lock (this._dispatchQueue)
         {
@@ -204,9 +256,13 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
             }
         }
 
+        string msg = _feedbackBox.text;
         switch (currentAppState)
         {
             //指定のアンカー名の情報でAzure Spatial Anchorsに問い合わせを行う。
+            case AppState.Ready:
+                _feedbackBox.text = "Sharing with Azure Spatial Anchors Demo.\nPlease Next Step.";
+                break;
             case AppState.AnchorSearching:
 
                 _cloudManager.ResetSessionStatusIndicators();
@@ -277,12 +333,43 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
             case AppState.Done:
                 _cloudManager.EnableProcessing = false;
                 _cloudManager.ResetSession();
+                DontDestroyOnLoad(_otherSpawnedObjects[0]);
+                _otherSpawnedObjects[0].AddComponent<SharedCollection>();
                 SceneManager.LoadScene("Launcher");
 
                 currentAppState = AppState.Ready;
                 break;
 
+            case AppState.AnchorReset:
+                Task.Run((async () =>
+                {
+                    int count = 0;
+#if !UNITY_EDITOR
+                count = anchorExchanger.AnchorCount;
+#endif
+                    foreach (var cloudSpatialAnchor in _resetAnchors)
+                    {
+                        msg = $"Delete Spatial Anchors Process...\n Please Wait.";
+#if !UNITY_EDITOR
+                        anchorExchanger.DeleteAnchorCache(cloudSpatialAnchor.Identifier);
+#endif
+                        await _cloudManager.DeleteAnchorAsync(cloudSpatialAnchor);
 
+                    }
+
+
+                    if (count == 0)
+                    {
+                        _resetAnchors.Clear();
+                        _cloudManager.EnableProcessing = false;
+                        _cloudManager.ResetSession();
+                        msg = $"Delete Success.";
+                        currentAppState = AppState.Ready;
+                        IsAzureSpatialAnchorsDeleted = true;
+                    }
+                }));
+                _feedbackBox.text = msg;
+                break;
         }
     }
 
@@ -305,22 +392,8 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 
 #endregion
 
-    #region CloudManager events
+#region CloudManager events
 
-    private void CloudManager_OnLocateAnchorsCompleted(object sender, LocateAnchorsCompletedEventArgs args)
-    {
-        if (currentAppState == AppState.AnchorReset)
-        {
-            foreach (var cloudSpatialAnchor in _resetAnchors)
-            {
-                _cloudManager.DeleteAnchorAsync(cloudSpatialAnchor).GetAwaiter().GetResult();
-            }
-            
-            _resetAnchors.Clear();
-            Task.Delay(800);
-            currentAppState = AppState.AnchorSearching;
-        }
-    }
 
     private void CloudManager_OnSessionError(object sender, SessionErrorEventArgs args)
     {
@@ -339,8 +412,12 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 
         if (currentAppState == AppState.AnchorReset)
         {
-            if(args.Anchor!=null)
+            if (args.Anchor != null)
+            {
                 _resetAnchors.Add(args.Anchor);
+                
+                return;
+            }
         }
 
         else
@@ -370,9 +447,9 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
     }
 
 
-    #endregion
+#endregion
 
-    #region upload to Azure Spatial Anchors
+#region upload to Azure Spatial Anchors
 
     public async void DeleteAnchor()
     {
@@ -462,9 +539,9 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
         }));
     }
 
-    #endregion
+#endregion
 
-    #region Anchor Locate To Local
+#region Anchor Locate To Local
     private void LocateAnchors()
     {
         _cloudManager.ResetSessionStatusIndicators();
@@ -487,9 +564,9 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 
     }
 
-    #endregion
+#endregion
 
-    #region Anchor Spawn
+#region Anchor Spawn
     private void OnCloudAnchorLocated(AnchorLocatedEventArgs args)
     {
         _currentCloudAnchor = args.Anchor;
@@ -672,7 +749,8 @@ public class AzureSpatialAnchorsSharedAnchorDemoScript : InputInteractionBase
 
     internal enum AppState
     {
-        Ready = 0,
+        Initialize = 0,
+        Ready,
         AnchorSearching,
         AnchorFounded,
         AnchorNotFounded,

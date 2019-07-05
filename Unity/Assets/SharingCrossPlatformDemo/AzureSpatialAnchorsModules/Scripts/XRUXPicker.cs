@@ -1,10 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
-
-// // Copyright(c) 2019 Takahiro Miyaura
-// Released under the MIT license
-// http://opensource.org/licenses/mit-license.php
-
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -60,16 +55,10 @@ namespace Microsoft.Azure.SpatialAnchors.Unity.Samples
 #endif
 
             Debug.Log(sourceTree.transform.childCount);
-            int childCount = sourceTree.transform.childCount;
-            for (int index = 0; index < childCount; index++)
+            Text t = sourceTree.GetComponentInChildren<Text>();
+            if (t != null)
             {
-                GameObject child = sourceTree.transform.GetChild(index).gameObject;
-                Text t = child.GetComponent<Text>();
-                if (t != null)
-                {
-                    return t;
-                }
-
+                return t;
             }
 
             Debug.LogError("Did not find feedback text control.");

@@ -1,21 +1,11 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1001 &100100000
-Prefab:
-  m_ObjectHideFlags: 1
-  serializedVersion: 2
-  m_Modification:
-    m_TransformParent: {fileID: 0}
-    m_Modifications: []
-    m_RemovedComponents: []
-  m_SourcePrefab: {fileID: 0}
-  m_RootGameObject: {fileID: 1773021142251480}
-  m_IsPrefabAsset: 1
 --- !u!1 &1773021142251480
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
   - component: {fileID: 4788106853232966}
@@ -29,11 +19,12 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &4788106853232966
 Transform:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1773021142251480}
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
@@ -42,20 +33,21 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &114613638641686716
 MonoBehaviour:
-  m_ObjectHideFlags: 1
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInternal: {fileID: 100100000}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1773021142251480}
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 100cb008199b9844f9867dcc1fa76154, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  HoloLensCameraTree: {fileID: 1914915930402214, guid: 31db058fca91ea2449bde761a3c11331,
-    type: 2}
+  HoloLensCameraTree: {fileID: 1914915930402214, guid: 025981e80d5e3a949809f3a14935ba1b,
+    type: 3}
   ArkitCameraTree: {fileID: 1737081372173768, guid: 60c24b6a587062e4c8ec07e8bcdfd44d,
-    type: 2}
-  ArCoreCameraTree: {fileID: 1305801497339314, guid: 7ffdd4d11ae25054ca0285cdb1228a0c,
-    type: 2}
-  EditorCameraTree: {fileID: 1021716473337512, guid: 5f9f5b7298177234ba79a3f2ce611872,
-    type: 2}
+    type: 3}
+  ArCoreCameraTree: {fileID: 1305801497339314, guid: 8a907e9d7082b634cb4a4bc8660ff686,
+    type: 3}
+  EditorCameraTree: {fileID: 1021716473337512, guid: 523543de805d5cf4ab09d602f1a857e5,
+    type: 3}

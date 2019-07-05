@@ -1,10 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License. See LICENSE in the project root for license information.
-
-// // Copyright(c) 2019 Takahiro Miyaura
-// Released under the MIT license
-// http://opensource.org/licenses/mit-license.php
-
+// Licensed under the MIT license.
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -26,7 +21,7 @@ public abstract class InputInteractionBase : MonoBehaviour
     public virtual void OnDestroy()
     {
 #if WINDOWS_UWP || UNITY_WSA
-        UnityEngine.XR.WSA.Input.InteractionManager.InteractionSourcePressed -= this.InteractionManager_InteractionSourcePressed;
+        UnityEngine.XR.WSA.Input.InteractionManager.InteractionSourcePressed -= InteractionManager_InteractionSourcePressed;
 #endif
     }
 
@@ -37,7 +32,7 @@ public abstract class InputInteractionBase : MonoBehaviour
     public virtual void Start()
     {
 #if WINDOWS_UWP || UNITY_WSA
-        UnityEngine.XR.WSA.Input.InteractionManager.InteractionSourcePressed += this.InteractionManager_InteractionSourcePressed;
+        UnityEngine.XR.WSA.Input.InteractionManager.InteractionSourcePressed += InteractionManager_InteractionSourcePressed;
 #endif
     }
 
@@ -46,12 +41,12 @@ public abstract class InputInteractionBase : MonoBehaviour
     /// </summary>
     public virtual void Update()
     {
-        this.TriggerInteractions();
+        TriggerInteractions();
     }
 
     private void TriggerInteractions()
     {
-        this.OnGazeInteraction();
+        OnGazeInteraction();
 
         if (Input.touchCount > 0)
         {
@@ -62,7 +57,7 @@ public abstract class InputInteractionBase : MonoBehaviour
                 return;
             }
 
-            this.OnTouchInteraction(touch);
+            OnTouchInteraction(touch);
         }
     }
 
@@ -73,13 +68,13 @@ public abstract class InputInteractionBase : MonoBehaviour
     {
         // See if we hit a surface. If not, position the object in front of the user.
         RaycastHit target;
-        if (this.TryGazeHitTest(out target))
+        if (TryGazeHitTest(out target))
         {
-            this.OnGazeObjectInteraction(target.point, target.normal);
+            OnGazeObjectInteraction(target.point, target.normal);
         }
         else
         {
-            this.OnGazeObjectInteraction(Camera.main.transform.position + Camera.main.transform.forward * 1.5f, -Camera.main.transform.forward);
+            OnGazeObjectInteraction(Camera.main.transform.position + Camera.main.transform.forward * 1.5f, -Camera.main.transform.forward);
         }
     }
 
@@ -101,7 +96,7 @@ public abstract class InputInteractionBase : MonoBehaviour
     {
         if (touch.phase == TouchPhase.Ended)
         {
-            this.OnTouchInteractionEnded(touch);
+            OnTouchInteractionEnded(touch);
         }
     }
 
@@ -125,7 +120,7 @@ public abstract class InputInteractionBase : MonoBehaviour
         {
             ARHitTestResult hitResult = hitResults[0];
             Vector3 pos = UnityARMatrixOps.GetPosition(hitResult.worldTransform);
-            this.OnSelectObjectInteraction(pos, hitResult);
+            OnSelectObjectInteraction(pos, hitResult);
         }
 #elif UNITY_ANDROID
         TrackableHit hit;
@@ -134,13 +129,13 @@ public abstract class InputInteractionBase : MonoBehaviour
 
         if (Frame.Raycast(touch.position.x, touch.position.y, raycastFilter, out hit))
         {
-            this.OnSelectObjectInteraction(hit.Pose.position, hit);
+            OnSelectObjectInteraction(hit.Pose.position, hit);
         }
 #elif WINDOWS_UWP || UNITY_WSA
         RaycastHit hit;
-        if (this.TryGazeHitTest(out hit))
+        if (TryGazeHitTest(out hit))
         {
-            this.OnSelectObjectInteraction(hit.point, hit);
+            OnSelectObjectInteraction(hit.point, hit);
         }
 #endif
     }
@@ -153,9 +148,9 @@ public abstract class InputInteractionBase : MonoBehaviour
     {
 #if WINDOWS_UWP || UNITY_WSA
         RaycastHit hit;
-        if (this.TryGazeHitTest(out hit))
+        if (TryGazeHitTest(out hit))
         {
-            this.OnSelectObjectInteraction(hit.point, hit);
+            OnSelectObjectInteraction(hit.point, hit);
         }
 #endif
     }
@@ -186,7 +181,7 @@ public abstract class InputInteractionBase : MonoBehaviour
     {
         if (obj.pressType == UnityEngine.XR.WSA.Input.InteractionSourcePressType.Select)
         {
-            this.OnSelectInteraction();
+            OnSelectInteraction();
         }
     }
 #endif
